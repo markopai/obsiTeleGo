@@ -12,7 +12,9 @@ import (
 
 func main() {
 
-	a := app.New()
+	a := app.New(&app.Options{
+		Repo: os.Getenv("REPO"),
+	})
 	defer a.DBClose()
 
 	a.Log.Info("Starting obsiTeleGo")
