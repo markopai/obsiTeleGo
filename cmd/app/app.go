@@ -1,46 +1,51 @@
 package app
 
 import (
-	"database/sql"
-	"fmt"
-	"github.com/redis/go-redis/v9"
 	"log/slog"
-	_ "modernc.org/sqlite"
 	"obsiTeleGo/internal/botHandler"
 	"obsiTeleGo/internal/logger"
 	"obsiTeleGo/internal/repository"
-	"obsiTeleGo/internal/repository/sqliteRepo"
 	"os"
 )
+
+type database interface {
+	Close() error
+}
 
 type App struct {
 	Logger     *logger.Logger
 	Log        *slog.Logger
-	BotHandler *botHandler.BotHandler
-	db         *sql.DB
+	db         database
 	Repo       repository.Repo
+	BotHandler *botHandler.BotHandler
 }
 
-func New() App {
+type Options struct {
+	Repo string
+}
+
+func New(opt *Options) App {
 	base := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	logger := initLogger(base)
 	log := initAppLog(base)
-	repo, db, err := initSQLiteRepo(logger.Repo)
-	botHandler := initBotHandler(logger.BotHandler, repo)
+
+	repo, db, err := initRepo(logger.Repo)
 
 	if err != nil {
 
-		log.Error("Init SQLiteRepo Error", "error", err)
+		log.Error("Init Repo Error", "error", err)
 		panic(err)
 	}
+
+	botHandler := initBotHandler(logger.BotHandler, repo)
 
 	return App{
 		Logger:     logger,
 		Log:        log,
-		BotHandler: botHandler,
 		db:         db,
 		Repo:       repo,
+		BotHandler: botHandler,
 	}
 }
 
@@ -50,29 +55,6 @@ func initLogger(base *slog.Logger) *logger.Logger {
 
 func initAppLog(base *slog.Logger) *slog.Logger {
 	return base.With("logger", "app")
-}
-
-func initSQLiteRepo(log *slog.Logger) (repository.Repo, *sql.DB, error) {
-	dbPath := os.Getenv("DATABASE_PATH")
-	if dbPath == "" {
-		dbPath = "./data/mydb.sqlite" // локальная разработка
-	}
-
-	db, err := sql.Open("sqlite", dbPath)
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("open conn to sqlite error: %w", err)
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, nil, fmt.Errorf("ping sqlite error: %w", err)
-	}
-
-	return sqliteRepo.New(db, log), db, nil
-}
-
-func initRedisRepo(log *slog.Logger) (redis.Client, *sql.DB, error) {
-
 }
 
 func (a *App) DBClose() error {
