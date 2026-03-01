@@ -47,7 +47,6 @@ services:
       "REPO": ${REPO}
     volumes:
       - sqlite_data:/data
-      - ./config:/root/config
     depends_on:
       rabbitmq:
         condition: service_healthy

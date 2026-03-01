@@ -21,7 +21,7 @@ coverage.txt
 
 # Dependency directories
 vendor/
-data/mydb.sqlite
+data/
 
 # Go workspace file
 go.work
@@ -93,3 +93,5 @@ docker-compose.override.yml
 # Local development
 .local/
 local/
+bot
+
